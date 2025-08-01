@@ -76,3 +76,6 @@ C:\Users\Islam\Documents\dotnet-angular-jwt\API\obj\Debug\net9.0\refint\API.dll
 C:\Users\Islam\Documents\dotnet-angular-jwt\API\obj\Debug\net9.0\API.pdb
 C:\Users\Islam\Documents\dotnet-angular-jwt\API\obj\Debug\net9.0\API.genruntimeconfig.cache
 C:\Users\Islam\Documents\dotnet-angular-jwt\API\obj\Debug\net9.0\ref\API.dll
+C:\Users\Islam\Documents\dotnet-angular-jwt\API\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
+C:\Users\Islam\Documents\dotnet-angular-jwt\API\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+C:\Users\Islam\Documents\dotnet-angular-jwt\API\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
