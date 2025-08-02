@@ -1,7 +1,11 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using API.Controllers.Dtos;
 using API.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace API.Controllers
 {
@@ -24,7 +28,7 @@ namespace API.Controllers
             _roleManager = roleManager;
             _configuration = configuration;
         }
-        // api/account/register
+        // api/account/register (Register Endpoint)
         [HttpPost("register")]
         public async Task<ActionResult<string>> Register(RegisterDto registerDto)
         {
@@ -59,6 +63,69 @@ namespace API.Controllers
                 IsSuccess = true,
                 Message = "User Created Successfully!"
             });
+        }
+
+        // /api/account/login (Login Endpoint)
+        [HttpPost("login")]
+        public async Task<ActionResult<AuthResponseDto>> Login(LoginDto loginDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var user = await _userManager.FindByEmailAsync(loginDto.Email);
+            if (user is null)
+            {
+                return Unauthorized(new AuthResponseDto
+                {
+                    IsSuccess = false,
+                    Message = "No user found with this email",
+                });
+            }
+            var result = await _userManager.CheckPasswordAsync(user, loginDto.Password);
+            if (!result)
+            {
+                return Unauthorized(new AuthResponseDto
+                {
+                    IsSuccess = false,
+                    Message = "Invalid Password"
+                });
+            }
+            var token = GenerateToken(user);
+            return Ok(new AuthResponseDto
+            {
+                Token = token,
+                IsSuccess = true,
+                Message = "Successfully Logged in!"
+            });
+        }
+        private string GenerateToken(AppUser user)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_configuration.GetSection("JWTSetting").GetSection("secretKey").Value!);
+            var roles = _userManager.GetRolesAsync(user).Result;
+            List<Claim> claims =
+            [
+                new (JwtRegisteredClaimNames.Email, user.Email ?? ""),
+                new (JwtRegisteredClaimNames.Name, user.FullName ?? ""),
+                new (JwtRegisteredClaimNames.NameId, user.Id ?? ""),
+                new (JwtRegisteredClaimNames.Aud, _configuration.GetSection("JWTSetting").GetSection("ValidAudience").Value!),
+                new (JwtRegisteredClaimNames.Iss, _configuration.GetSection("JWTSetting").GetSection("ValidIssuer").Value!),
+            ];
+
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+            ;
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.AddDays(1),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256)
+            };
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
     }
 }
