@@ -6,10 +6,12 @@ using API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace API.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     // api/account 
@@ -30,6 +32,7 @@ namespace API.Controllers
             _configuration = configuration;
         }
         // api/account/register (Register Endpoint)
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<ActionResult<string>> Register(RegisterDto registerDto)
         {
@@ -67,6 +70,7 @@ namespace API.Controllers
         }
 
         // /api/account/login (Login Endpoint)
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseDto>> Login(LoginDto loginDto)
         {
@@ -155,6 +159,33 @@ namespace API.Controllers
                 PhoneNumberConfirmed = user.PhoneNumberConfirmed,
                 AccessFailedCount = user.AccessFailedCount
             });
+        }
+
+
+
+    // List all users (/api/account)
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<UserDetailDto>>> GetUsers()
+        {
+            var users = await _userManager.Users
+                .Select(u => new { u.Id, u.Email, u.FullName })
+                .ToListAsync();
+            var userDtos = await Task.WhenAll(
+                users.Select(async u =>
+                {
+                    var appUser = await _userManager.FindByIdAsync(u.Id);
+                    var roles = await _userManager.GetRolesAsync(appUser!);
+                    return new UserDetailDto
+                    {
+                        Id = u.Id,
+                        Email = u.Email,
+                        FullName = u.FullName,
+                        Roles = roles.ToList()
+                    };
+                })
+            );
+            return Ok(userDtos);
         }
     }
 }
